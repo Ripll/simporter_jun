@@ -1,10 +1,10 @@
 import json
 from flask import request
-
 from . import create_app
-from .models import Events, db
+from .models import db
 from .utils import get_possible_attrs, is_date
 from datetime import datetime
+
 app = create_app()
 
 
@@ -65,7 +65,7 @@ def timeline():
     if error:
         return json.dumps({"error": error_msg,
                            "result": False})
-
+    # Get timeline with weekly or monthly date_trunc
     db_result = db.engine.execute("""SELECT
                                         date_trunc('{}', timestamp) w,
                                         COUNT (*)
@@ -80,10 +80,13 @@ def timeline():
                                                      grouping_data['endDate'],
                                                      "AND " + a if (a := "AND ".join([f"{i} = '{j}'"
                                                                                       for i, j in filters.items()]))
+
                                                      else ""))
+    # formatting usual timeline
     result_timeline = []
     skip = False
     for row in db_result:
+        # if bi-weekly = add value to previous tick
         if grouping_data['Grouping'] == 'bi-weekly' and skip:
             result_timeline[-1]['value'] += row[1]
             skip = False
@@ -92,6 +95,7 @@ def timeline():
             if grouping_data['Grouping'] == 'bi-weekly':
                 skip = True
 
+    # convert from usual to cumulative
     if grouping_data['Type'] == "cumulative":
         index = 0
         for i in result_timeline[1:]:
