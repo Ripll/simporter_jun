@@ -57,7 +57,7 @@ def timeline():
             error = True
             error_msg = f"Unexpected argument {filter}"
             break
-        elif request.args[filter] not in possible_attrs['values'][filter]:
+        elif request.args[filter] not in [str(i) for i in possible_attrs['values'][filter]]:
             error = True
             error_msg = f"The {filter} can only take such values: {possible_attrs['values'][filter]}"
         else:
@@ -69,19 +69,34 @@ def timeline():
     db_result = db.engine.execute("""SELECT
                                         date_trunc('{}', timestamp) w,
                                         COUNT (*)
-                                      FROM
+                                     FROM
                                         events
-                                      WHERE timestamp >= '{}' AND timestamp <= '{}' {}
-                                      GROUP BY
+                                     WHERE timestamp >= '{}' AND timestamp <= '{}' {}
+                                     GROUP BY
                                         w
-                                      ORDER BY
+                                     ORDER BY
                                         w;""".format('month' if grouping_data['Grouping'] == 'monthly' else 'week',
                                                      grouping_data['startDate'],
                                                      grouping_data['endDate'],
-                                                     "AND ".join([f"{i} = '{j}'" for i, j in filters.items()])))
+                                                     "AND " + a if (a := "AND ".join([f"{i} = '{j}'"
+                                                                                      for i, j in filters.items()]))
+                                                     else ""))
     result_timeline = []
+    skip = False
     for row in db_result:
-        result_timeline.append({"date": row[0].strftime('%Y-%m-%d'), "value": row[1]})
+        if grouping_data['Grouping'] == 'bi-weekly' and skip:
+            result_timeline[-1]['value'] += row[1]
+            skip = False
+        else:
+            result_timeline.append({"date": row[0].strftime('%Y-%m-%d'), "value": row[1]})
+            if grouping_data['Grouping'] == 'bi-weekly':
+                skip = True
+
+    if grouping_data['Type'] == "cumulative":
+        index = 0
+        for i in result_timeline[1:]:
+            i['value'] += result_timeline[index]['value']
+            index += 1
 
     return json.dumps({"timeline": result_timeline,
                        "result": True})
