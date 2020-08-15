@@ -8,7 +8,7 @@ WORKDIR /app
 # install dependencies
 RUN pip install --upgrade pip
 COPY ./requirements.txt /app/requirements.txt
-COPY ./test_data.csv /app/test_data.csv
+COPY ./test_data.csv /app/app/test_data.csv
 
 RUN pip install -r /app/requirements.txt
 
