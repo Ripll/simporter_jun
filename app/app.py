@@ -11,6 +11,7 @@ app = create_app()
 @app.route('/api/info', methods=['GET'])
 def info():
     data = get_possible_attrs(db)
+    data['result'] = True
     return json.dumps(data)
 
 
