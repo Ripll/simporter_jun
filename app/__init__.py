@@ -2,7 +2,7 @@ from flask import Flask
 
 from .models import db, Events
 from . import config
-from import_csv import import_test_data
+from app.import_csv import import_test_data
 
 def create_app():
     flask_app = Flask(__name__)
