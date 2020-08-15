@@ -66,22 +66,25 @@ def timeline():
         return jsonify({"error": error_msg,
                         "result": False})
     # Get timeline with weekly or monthly date_trunc
-    db_result = db.engine.execute("""SELECT
-                                        date_trunc('{}', timestamp) w,
-                                        COUNT (*)
-                                     FROM
-                                        events
-                                     WHERE timestamp >= '{}' AND timestamp <= '{}' {}
-                                     GROUP BY
-                                        w
-                                     ORDER BY
-                                        w;""".format('month' if grouping_data['Grouping'] == 'monthly' else 'week',
-                                                     grouping_data['startDate'],
-                                                     grouping_data['endDate'],
-                                                     "AND " + a if (a := "AND ".join([f"{i} = '{j}'"
-                                                                                      for i, j in filters.items()]))
-
-                                                     else ""))
+    db_result = db.engine.execute("""SELECT b.minute date, coalesce(a.cnt, 0) cnt
+                                    FROM
+                                      (SELECT date_trunc('{period}', TIMESTAMP) w,
+                                              COUNT (*) AS cnt
+                                       FROM EVENTS
+                                       WHERE TIMESTAMP >= date_trunc('{period}', TIMESTAMP '{start}')
+                                         AND TIMESTAMP <= '{end}' {filter_params}
+                                       GROUP BY w
+                                       ORDER BY w) a
+                                    RIGHT JOIN
+                                      (SELECT generate_series(date_trunc('{period}', TIMESTAMP '{start}'),
+                                       TIMESTAMP '{end}', '1 {period}') AS MINUTE) b 
+                                       ON b.minute = a.w"""
+                                  .format(period='month' if grouping_data['Grouping'] == 'monthly' else 'week',
+                                          start=grouping_data['startDate'],
+                                          end=grouping_data['endDate'],
+                                          filter_params="AND " + a if (a := "AND ".join([f"{i} = '{j}'"
+                                                                                        for i, j in filters.items()]))
+                                                        else ""))
     # formatting usual timeline
     result_timeline = []
     skip = False
