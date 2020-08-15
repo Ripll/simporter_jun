@@ -1,5 +1,4 @@
-import json
-from flask import request
+from flask import request, jsonify
 from . import create_app
 from .models import db
 from .utils import get_possible_attrs, is_date
@@ -12,7 +11,7 @@ app = create_app()
 def info():
     data = get_possible_attrs(db)
     data['result'] = True
-    return json.dumps(data)
+    return jsonify(data)
 
 
 @app.route('/api/timeline', methods=['GET'])
@@ -28,8 +27,8 @@ def timeline():
         if p_value := request.args.get(p_name):
             grouping_data[p_name] = p_value
         else:
-            return json.dumps({"error": f"Not passed required parameter: {p_name}",
-                               "result": False})
+            return jsonify({"error": f"Not passed required parameter: {p_name}",
+                            "result": False})
 
     # Validation group fields
     possible_attrs = get_possible_attrs(db)
@@ -64,8 +63,8 @@ def timeline():
         else:
             filters[filter] = request.args[filter]
     if error:
-        return json.dumps({"error": error_msg,
-                           "result": False})
+        return jsonify({"error": error_msg,
+                        "result": False})
     # Get timeline with weekly or monthly date_trunc
     db_result = db.engine.execute("""SELECT
                                         date_trunc('{}', timestamp) w,
@@ -103,8 +102,8 @@ def timeline():
             i['value'] += result_timeline[index]['value']
             index += 1
 
-    return json.dumps({"timeline": result_timeline,
-                       "result": True})
+    return jsonify({"timeline": result_timeline,
+                    "result": True})
 
 
 
