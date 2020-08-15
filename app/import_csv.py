@@ -4,7 +4,7 @@ import datetime
 
 
 def import_test_data(db):
-    with open('./test_data.csv', newline='') as csvfile:
+    with open('test_data.csv', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=';')
         header = True
         for row in spamreader:
